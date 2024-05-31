@@ -27,9 +27,9 @@
     /* Modules */
     "module": "Node16",
     // "rootDir": "./",
-    // "moduleResolution": "node10",
-    // "baseUrl": "./",
-    // "paths": {},
+    "moduleResolution": "Node16",
+    "baseUrl": "./",
+    "paths": { "@/*": ["./src/*"] },
     // "rootDirs": [],
     // "typeRoots": [],
     // "types": [],

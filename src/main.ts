@@ -1,18 +1,29 @@
+import type { Server } from "node:http";
+import { promisify } from "node:util";
+import { MONGO_URL } from "./constants/environment.constants";
 import { app } from "./app";
+import { Mongo } from "./mongo";
 
-const server = app.listen(3000);
+const mongo = Mongo.getInstance();
+let server: Server | null = null;
 
-["SIGINT", "SIGTERM"].map((event) =>
-  process.on(event, () => {
-    if (!server) return;
+mongo.connect(MONGO_URL).then(() => {
+  server = app.listen(3000);
+});
 
-    server.close((err) => {
-      if (err) {
-        console.error(err);
-        process.exit(1);
+["SIGINT", "SIGTERM"].map((event) => {
+  process.on(event, async () => {
+    try {
+      if (mongo.isConnected()) {
+        await mongo.disconnect();
       }
 
-      process.exit(0);
-    });
-  })
-);
+      if (server !== null) {
+        await promisify(server.close)();
+      }
+    } catch (error) {
+      console.error(error);
+      process.exit(1);
+    }
+  });
+});
