@@ -1,18 +1,6 @@
 import { app } from "./app";
+import { ConfigProvider } from "./providers/config.provider";
+import { MongoProvider } from "./providers/mongo.provider";
 
-const server = app.listen(3000);
-
-["SIGINT", "SIGTERM"].map((event) =>
-  process.on(event, () => {
-    if (!server) return;
-
-    server.close((err) => {
-      if (err) {
-        console.error(err);
-        process.exit(1);
-      }
-
-      process.exit(0);
-    });
-  })
-);
+const MONGO_URL = ConfigProvider.getOrThrow("MONGO_URL");
+MongoProvider.connect(MONGO_URL).then(() => app.listen(3000));
