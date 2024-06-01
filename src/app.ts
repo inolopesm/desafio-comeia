@@ -1,18 +1,20 @@
 import express from "express";
 import { AuthController } from "./modules/auth/auth.controller";
 import { RatingController } from "./modules/rating/rating.controller";
-import { adaptRoute } from "./route.adapter";
+import { RouteAdapter } from "./route.adapter";
 
 const app = express();
 
 app.use(express.json());
 
-adaptRoute(AuthController.login, app);
-adaptRoute(AuthController.refresh, app);
-adaptRoute(RatingController.find, app);
-adaptRoute(RatingController.create, app);
-adaptRoute(RatingController.update, app);
-adaptRoute(RatingController.delete, app);
+const routeAdapter = new RouteAdapter(app);
+
+routeAdapter.adapt(AuthController.login);
+routeAdapter.adapt(AuthController.refresh);
+routeAdapter.adapt(RatingController.find);
+routeAdapter.adapt(RatingController.create);
+routeAdapter.adapt(RatingController.update);
+routeAdapter.adapt(RatingController.delete);
 
 app.use((request, response) => {
   response.status(404);
