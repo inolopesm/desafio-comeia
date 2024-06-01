@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "start": "node dist/main",
-    "build": "tsc",
+    "build": "tsc -p tsconfig.build.json",
     "dev": "node -r ts-node/register --env-file=.env --watch src/main.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
