@@ -1,11 +1,11 @@
 import argon2 from "argon2";
 import * as jose from "jose";
 import { ConfigProvider } from "../../providers/config.provider";
-import { AuthService } from "./auth.service";
-import { User } from "./user.entity";
-import { SessionDTO } from "./session.dto";
 import { AuthRepository } from "./auth.repository";
+import { AuthService } from "./auth.service";
+import { SessionDTO } from "./session.dto";
 import { SessionSchema } from "./session.schema";
+import { User } from "./user.entity";
 
 jest.mock("../../providers/mongo.provider", () => ({
   MongoProvider: {

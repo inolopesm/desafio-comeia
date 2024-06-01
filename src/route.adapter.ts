@@ -1,5 +1,5 @@
-import type e from "express";
 import z from "zod";
+import type e from "express";
 
 interface RouteHandlerOutput {
   statusCode: number;

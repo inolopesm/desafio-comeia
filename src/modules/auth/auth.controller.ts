@@ -1,6 +1,6 @@
-import { AuthService } from "./auth.service";
 import z from "zod";
 import { adaptRoute } from "../../route.adapter";
+import { AuthService } from "./auth.service";
 
 const LoginSchema = z.object({
   body: z.object({

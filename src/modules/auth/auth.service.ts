@@ -1,7 +1,7 @@
 import argon2 from "argon2";
 import * as jose from "jose";
-import { AuthRepository } from "./auth.repository";
 import { ConfigProvider } from "../../providers/config.provider";
+import { AuthRepository } from "./auth.repository";
 import { SessionDTO } from "./session.dto";
 import { SessionSchema } from "./session.schema";
 
