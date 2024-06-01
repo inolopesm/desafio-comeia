@@ -17,4 +17,12 @@ export const MongoProvider = {
     this[kClient] = new MongoClient(url);
     await this[kClient].connect();
   },
+
+  async disconnect() {
+    if (this[kClient] === null) {
+      throw new Error("Mongo clientnot connected");
+    }
+
+    await this[kClient].close();
+  },
 };
