@@ -1,25 +1,12 @@
 import argon2 from "argon2";
-import * as jose from "jose";
-import { ConfigProvider } from "../../providers/config.provider";
-import { AuthRepository } from "./auth.repository";
-import { SessionDTO } from "./session.dto";
-import { SessionSchema } from "./session.schema";
-
-export interface LoginAuthOutputDTO {
-  accessToken: string;
-  refreshToken: string;
-}
-
-export interface RefreshAuthOutputDTO {
-  accessToken: string;
-}
+import { JWTHelper } from "../../helpers/jwt.helper";
+import { ACCESS_TOKEN_SECRET, REFRESH_TOKEN_SECRET } from "./auth.constants";
+import { UserRepository } from "./user.repository";
+import type { SessionDTO } from "./session.schema";
 
 export const AuthService = {
-  async login(
-    username: string,
-    password: string,
-  ): Promise<LoginAuthOutputDTO | Error> {
-    const user = await AuthRepository.findUserByUsername(username);
+  async login(username: string, password: string) {
+    const user = await UserRepository.findByUsername(username);
 
     if (user === null) {
       return new Error("user not found");
@@ -29,59 +16,27 @@ export const AuthService = {
       return new Error("invalid password");
     }
 
-    const textEncoder = new TextEncoder();
-    const accessSecret = ConfigProvider.getOrThrow("ACCESS_TOKEN_SECRET");
-    const refreshSecret = ConfigProvider.getOrThrow("REFRESH_TOKEN_SECRET");
-    const sessionDTO: SessionDTO = { userId: user.id };
+    const accessToken = await JWTHelper.encrypt(
+      { userId: user.id } satisfies SessionDTO,
+      ACCESS_TOKEN_SECRET,
+      "5 minutes",
+    );
 
-    const signJWT = new jose.SignJWT({ ...sessionDTO })
-      .setProtectedHeader({ alg: "HS256" })
-      .setIssuedAt();
-
-    const accessToken = await signJWT
-      .setExpirationTime("5 minutes")
-      .sign(textEncoder.encode(accessSecret));
-
-    const refreshToken = await signJWT
-      .setExpirationTime("1 day")
-      .sign(textEncoder.encode(refreshSecret));
-
+    const refreshToken = await JWTHelper.encrypt(
+      { userId: user.id } satisfies SessionDTO,
+      REFRESH_TOKEN_SECRET,
+      "1 day",
+    );
     return { accessToken, refreshToken };
   },
 
-  async refresh(jwt: string): Promise<RefreshAuthOutputDTO | Error> {
-    try {
-      const textEncoder = new TextEncoder();
+  async refresh(sessionDTO: SessionDTO) {
+    const accessToken = await JWTHelper.encrypt(
+      { ...sessionDTO },
+      ACCESS_TOKEN_SECRET,
+      "5 minutes",
+    );
 
-      const refreshSecret = ConfigProvider.getOrThrow("REFRESH_TOKEN_SECRET");
-      const refreshKey = textEncoder.encode(refreshSecret);
-
-      const { payload } = await jose.jwtVerify(jwt, refreshKey);
-
-      const sessionDTO: SessionDTO = await SessionSchema.parseAsync(payload);
-      const accessSecret = ConfigProvider.getOrThrow("ACCESS_TOKEN_SECRET");
-
-      const accessToken = await new jose.SignJWT({ ...sessionDTO })
-        .setProtectedHeader({ alg: "HS256" })
-        .setIssuedAt()
-        .setExpirationTime("5 minutes")
-        .sign(textEncoder.encode(accessSecret));
-
-      return { accessToken };
-    } catch (error) {
-      if (error instanceof jose.errors.JWSSignatureVerificationFailed) {
-        return error;
-      }
-
-      if (error instanceof jose.errors.JWTExpired) {
-        return error;
-      }
-
-      if (error instanceof jose.errors.JWSInvalid) {
-        return error;
-      }
-
-      throw error;
-    }
+    return accessToken;
   },
 };

@@ -7,3 +7,5 @@ export const UserSchema = z.object({
   createdAt: z.number(),
   updatedAt: z.number(),
 });
+
+export type UserDTO = z.infer<typeof UserSchema>;

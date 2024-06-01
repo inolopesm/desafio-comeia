@@ -1,73 +1,49 @@
-import z from "zod";
-import { adaptRoute } from "../../route.adapter";
+import { HttpException } from "../../exceptions/http.exception";
+import { JWTPipe } from "../../pipes/jwt.pipe";
+import { ZodPipe } from "../../pipes/zod.pipe";
+import { REFRESH_TOKEN_SECRET } from "./auth.constants";
+import { AuthSchema } from "./auth.schema";
 import { AuthService } from "./auth.service";
-
-const LoginSchema = z.object({
-  body: z.object({
-    username: z.string({
-      invalid_type_error: "username must be a string type",
-      required_error: "username is a required field",
-    }),
-
-    password: z.string({
-      invalid_type_error: "password must be a string type",
-      required_error: "password is a required field",
-    }),
-  }),
-});
-
-const RefreshSchema = z.object({
-  body: z.object({
-    refreshToken: z.string({
-      invalid_type_error: "refreshToken must be a string type",
-      required_error: "refreshToken is a required field",
-    }),
-  }),
-});
+import { LoginDTO, LoginSchema } from "./login.schema";
+import { SessionDTO, SessionSchema } from "./session.schema";
+import type { Route } from "../../interfaces/route.interface";
 
 export const AuthController = {
-  login: adaptRoute({
+  login: {
     method: "post",
     path: "/api/v1/auth/login",
-    schema: LoginSchema,
-    handler: async (req) => {
-      const output = await AuthService.login(
-        req.body.username,
-        req.body.password,
+    handler: async (context) => {
+      const { username, password }: LoginDTO = await context.getBody(
+        new ZodPipe(LoginSchema),
       );
 
-      if (output instanceof Error) {
-        return {
-          statusCode: 400,
-          body: { message: output.message },
-        };
+      const resultOrError = await AuthService.login(username, password);
+
+      if (resultOrError instanceof Error) {
+        const error = resultOrError;
+        throw new HttpException(400, error.message);
       }
 
-      return {
-        statusCode: 200,
-        body: output,
-      };
-    },
-  }),
+      const result = resultOrError;
 
-  refresh: adaptRoute({
+      return result;
+    },
+  } satisfies Route,
+
+  refresh: {
     method: "post",
     path: "/api/v1/auth/refresh",
-    schema: RefreshSchema,
-    handler: async (req) => {
-      const output = await AuthService.refresh(req.body.refreshToken);
+    handler: async (context) => {
+      const sessionDTO: SessionDTO = await context.getHeader(
+        "authorization",
+        new ZodPipe(AuthSchema, 401, "unauthorized"),
+        new JWTPipe(REFRESH_TOKEN_SECRET, 401, "unauthorized"),
+        new ZodPipe(SessionSchema, 401, "unauthorized"),
+      );
 
-      if (output instanceof Error) {
-        return {
-          statusCode: 400,
-          body: { message: output.message },
-        };
-      }
+      const accessToken = await AuthService.refresh(sessionDTO);
 
-      return {
-        statusCode: 200,
-        body: output,
-      };
+      return { accessToken };
     },
-  }),
+  } satisfies Route,
 };

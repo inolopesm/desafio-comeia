@@ -1,39 +1,32 @@
-import argon2 from "argon2";
-import * as jose from "jose";
-import { ConfigProvider } from "../../providers/config.provider";
-import { AuthRepository } from "./auth.repository";
+import { JWTHelper } from "../../helpers/jwt.helper";
+import { ACCESS_TOKEN_SECRET, REFRESH_TOKEN_SECRET } from "./auth.constants";
 import { AuthService } from "./auth.service";
-import { SessionDTO } from "./session.dto";
-import { SessionSchema } from "./session.schema";
-import { User } from "./user.entity";
+import { UserRepository } from "./user.repository";
+import type { SessionDTO } from "./session.schema";
+import type { UserDTO } from "./user.schema";
 
-jest.mock("../../providers/mongo.provider", () => ({
-  MongoProvider: {
-    getClient: () => ({
-      db: () => ({
-        collection: () => ({
-          findOne: async (): Promise<User> => ({
-            id: "id",
-            username: "username",
-            password: await argon2.hash("password"),
-            createdAt: 0,
-            updatedAt: 0,
-          }),
-        }),
-      }),
-    }),
+const user: UserDTO = {
+  id: "id",
+  username: "username",
+  password: `$argon2id$v=19$m=65536,t=3,p=4$aS/NUo/bLPC38nr/GYEgcg$KLg4k2n1tjIIG9/v9CVO+D6V0Kzu/porQDJVjaLHU4w`,
+  createdAt: 0,
+  updatedAt: 0,
+};
+
+jest.mock("./user.repository", () => ({
+  UserRepository: {
+    async findByUsername() {
+      return user;
+    },
   },
 }));
 
-jest.mock("../../providers/config.provider", () => ({
-  ConfigProvider: {
-    getOrThrow: (key: string) =>
-      ({
-        ACCESS_TOKEN_SECRET: "ACCESS_TOKEN_SECRET",
-        REFRESH_TOKEN_SECRET: "REFRESH_TOKEN_SECRET",
-      })[key],
-  },
+jest.mock("./auth.constants", () => ({
+  ACCESS_TOKEN_SECRET: "ACCESS_TOKEN_SECRET",
+  REFRESH_TOKEN_SECRET: "REFRESH_TOKEN_SECRET",
 }));
+
+const sessionDTO: SessionDTO = { userId: user.id };
 
 describe("AuthService", () => {
   describe("login", () => {
@@ -46,176 +39,53 @@ describe("AuthService", () => {
     });
 
     it("should return the accessToken and refreshToken when success", async () => {
-      const output = await AuthService.login("username", "password");
+      const result = await AuthService.login(user.username, "password");
 
-      if (output instanceof Error)
-        throw new Error("does not expect output to be an instance of error");
+      if (result instanceof Error) {
+        console.error(result);
+        throw new Error("does not expect result to be an instance of error");
+      }
 
-      const sessionDTO: SessionDTO = { userId: "id" };
-
-      expect(output.accessToken).toEqual(
-        await new jose.SignJWT({ ...sessionDTO })
-          .setProtectedHeader({ alg: "HS256" })
-          .setIssuedAt()
-          .setExpirationTime("5 minutes")
-          .sign(new TextEncoder().encode("ACCESS_TOKEN_SECRET")),
+      expect(result.accessToken).toEqual(
+        await JWTHelper.encrypt(sessionDTO, ACCESS_TOKEN_SECRET, "5 minutes"),
       );
 
-      expect(output.refreshToken).toEqual(
-        await new jose.SignJWT({ ...sessionDTO })
-          .setProtectedHeader({ alg: "HS256" })
-          .setIssuedAt()
-          .setExpirationTime("1 day")
-          .sign(new TextEncoder().encode("REFRESH_TOKEN_SECRET")),
+      expect(result.refreshToken).toEqual(
+        await JWTHelper.encrypt(sessionDTO, REFRESH_TOKEN_SECRET, "1 day"),
       );
     });
 
     it("should return error if the user is not found", async () => {
-      jest
-        .spyOn(AuthRepository, "findUserByUsername")
-        .mockResolvedValueOnce(null);
-
-      const output = await AuthService.login("username", "password");
-      expect(output).toEqual(new Error("user not found"));
+      jest.spyOn(UserRepository, "findByUsername").mockResolvedValueOnce(null);
+      const result = await AuthService.login(user.username, "password");
+      expect(result).toEqual(new Error("user not found"));
     });
 
     it("should return error if the password does not match", async () => {
-      jest.spyOn(AuthRepository, "findUserByUsername").mockResolvedValueOnce({
-        id: "id",
-        username: "username",
-        password: await argon2.hash("another-password"),
-        createdAt: 0,
-        updatedAt: 0,
-      });
+      const userWithAnotherPassword: UserDTO = {
+        id: user.id,
+        username: user.username,
+        password: `$argon2id$v=19$m=65536,t=3,p=4$5NFLrvUcIWPRLSgM10BmvQ$NUdMYtZv3FEOY+3X8TOimrIXZuZtcjGZ9pa2fr4p7yQ`,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      };
 
-      const output = await AuthService.login("username", "password");
-      expect(output).toEqual(new Error("invalid password"));
+      jest
+        .spyOn(UserRepository, "findByUsername")
+        .mockResolvedValueOnce(userWithAnotherPassword);
+
+      const result = await AuthService.login(user.username, "password");
+      expect(result).toEqual(new Error("invalid password"));
     });
   });
 
   describe("refresh", () => {
     it("should return the new accessToken when success", async () => {
-      const sessionDTO: SessionDTO = { userId: "id" };
+      const accessToken = await AuthService.refresh({ userId: user.id });
 
-      const refreshToken = await new jose.SignJWT({ ...sessionDTO })
-        .setProtectedHeader({ alg: "HS256" })
-        .setIssuedAt()
-        .setExpirationTime("1 day")
-        .sign(new TextEncoder().encode("REFRESH_TOKEN_SECRET"));
-
-      const output = await AuthService.refresh(refreshToken);
-
-      if (output instanceof Error)
-        throw new Error("does not expect output to be an instance of error");
-
-      expect(output.accessToken).toEqual(
-        await new jose.SignJWT({ ...sessionDTO })
-          .setProtectedHeader({ alg: "HS256" })
-          .setIssuedAt()
-          .setExpirationTime("5 minutes")
-          .sign(new TextEncoder().encode("ACCESS_TOKEN_SECRET")),
+      expect(accessToken).toEqual(
+        await JWTHelper.encrypt(sessionDTO, ACCESS_TOKEN_SECRET, "5 minutes"),
       );
-    });
-
-    it("should throw error if jwt signature validation is invalid", async () => {
-      const sessionDTO: SessionDTO = { userId: "id" };
-
-      const refreshToken = await new jose.SignJWT({ ...sessionDTO })
-        .setProtectedHeader({ alg: "HS256" })
-        .setIssuedAt()
-        .setExpirationTime("1 day")
-        .sign(new TextEncoder().encode("ANOTHER_REFRESH_TOKEN_SECRET"));
-
-      const output = await AuthService.refresh(refreshToken);
-
-      expect(output).toBeInstanceOf(jose.errors.JWSSignatureVerificationFailed);
-    });
-
-    it("should throw error if jwt expired", async () => {
-      const sessionDTO: SessionDTO = { userId: "id" };
-
-      const refreshToken = await new jose.SignJWT({ ...sessionDTO })
-        .setProtectedHeader({ alg: "HS256" })
-        .setIssuedAt()
-        .setExpirationTime(Math.round(Date.now() / 1000 - 5))
-        .sign(new TextEncoder().encode("REFRESH_TOKEN_SECRET"));
-
-      const output = await AuthService.refresh(refreshToken);
-
-      expect(output).toBeInstanceOf(jose.errors.JWTExpired);
-    });
-
-    it("should throw error if jwt is invalid", async () => {
-      const output = await AuthService.refresh("invalid-refresh-token");
-      expect(output).toBeInstanceOf(jose.errors.JWSInvalid);
-    });
-
-    describe("it should throw error if unexpected error throws", () => {
-      test("by ConfigProvider.getOrThrow", async () => {
-        jest.spyOn(ConfigProvider, "getOrThrow").mockImplementationOnce(() => {
-          throw new Error();
-        });
-
-        const sessionDTO: SessionDTO = { userId: "id" };
-
-        const refreshToken = await new jose.SignJWT({ ...sessionDTO })
-          .setProtectedHeader({ alg: "HS256" })
-          .setIssuedAt()
-          .setExpirationTime("1 day")
-          .sign(new TextEncoder().encode("REFRESH_TOKEN_SECRET"));
-
-        const promise = AuthService.refresh(refreshToken);
-        await expect(promise).rejects.toThrow(new Error());
-      });
-
-      test("by jose.jwtVerify", async () => {
-        jest.spyOn(jose, "jwtVerify").mockRejectedValueOnce(new Error());
-
-        const sessionDTO: SessionDTO = { userId: "id" };
-
-        const refreshToken = await new jose.SignJWT({ ...sessionDTO })
-          .setProtectedHeader({ alg: "HS256" })
-          .setIssuedAt()
-          .setExpirationTime("1 day")
-          .sign(new TextEncoder().encode("REFRESH_TOKEN_SECRET"));
-
-        const promise = AuthService.refresh(refreshToken);
-        await expect(promise).rejects.toThrow(new Error());
-      });
-
-      test("by SessionSchema.parseAsync", async () => {
-        jest
-          .spyOn(SessionSchema, "parseAsync")
-          .mockRejectedValueOnce(new Error());
-
-        const sessionDTO: SessionDTO = { userId: "id" };
-
-        const refreshToken = await new jose.SignJWT({ ...sessionDTO })
-          .setProtectedHeader({ alg: "HS256" })
-          .setIssuedAt()
-          .setExpirationTime("1 day")
-          .sign(new TextEncoder().encode("REFRESH_TOKEN_SECRET"));
-
-        const promise = AuthService.refresh(refreshToken);
-        await expect(promise).rejects.toThrow(new Error());
-      });
-
-      test("by jose.SignJWT.prototype.sign", async () => {
-        const sessionDTO: SessionDTO = { userId: "id" };
-
-        const refreshToken = await new jose.SignJWT({ ...sessionDTO })
-          .setProtectedHeader({ alg: "HS256" })
-          .setIssuedAt()
-          .setExpirationTime("1 day")
-          .sign(new TextEncoder().encode("REFRESH_TOKEN_SECRET"));
-
-        jest
-          .spyOn(jose.SignJWT.prototype, "sign")
-          .mockRejectedValueOnce(new Error());
-
-        const promise = AuthService.refresh(refreshToken);
-        await expect(promise).rejects.toThrow(new Error());
-      });
     });
   });
 });
