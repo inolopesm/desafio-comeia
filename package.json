@@ -6,7 +6,8 @@
     "start": "node dist/main",
     "build": "tsc -p tsconfig.build.json",
     "dev": "node -r ts-node/register --env-file=.env --watch src/main.ts",
-    "test": "jest"
+    "test:unit": "jest src",
+    "test:integration": "jest -i tests"
   },
   "dependencies": {
     "argon2": "^0.40.3",

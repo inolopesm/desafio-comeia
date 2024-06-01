@@ -1,10 +1,12 @@
+import * as jose from "jose";
 import { MongoMemoryServer } from "mongodb-memory-server";
 import request from "supertest";
 import { app } from "../src/app";
-import { UserDTO } from "../src/modules/auth/user.schema";
 import { MongoProvider } from "../src/providers/mongo.provider";
+import type { SessionDTO } from "../src/modules/auth/session.schema";
+import type { UserDTO } from "../src/modules/auth/user.schema";
 
-jest.mock("../src/modules/auth/auth.constants.ts", () => ({
+jest.mock("../src/modules/auth/auth.constants", () => ({
   ACCESS_TOKEN_SECRET: "ACCESS_TOKEN_SECRET",
   REFRESH_TOKEN_SECRET: "REFRESH_TOKEN_SECRET",
 }));
@@ -71,6 +73,25 @@ describe("/api/v1/auth", () => {
 
       expect(response.status).toEqual(400);
       expect(response.body.message).toBe("invalid password");
+    });
+  });
+
+  describe("/api/v1/auth/refresh", () => {
+    it("should return 200 when success", async () => {
+      const sessionDTO: SessionDTO = { userId: userDTO.id };
+
+      const refreshToken = await new jose.SignJWT({ ...sessionDTO })
+        .setProtectedHeader({ alg: "HS256" })
+        .setIssuedAt()
+        .setExpirationTime("1 day")
+        .sign(new TextEncoder().encode("REFRESH_TOKEN_SECRET"));
+
+      const response = await request(app)
+        .post("/api/v1/auth/refresh")
+        .set("Authorization", `Bearer ${refreshToken}`);
+
+      expect(response.status).toEqual(200);
+      expect(typeof response.body.accessToken).toBe("string");
     });
   });
 });
