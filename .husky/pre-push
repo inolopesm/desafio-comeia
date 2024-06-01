@@ -1,0 +1,4 @@
+npx tsc --noEmit
+npx eslint .
+npm run test:unit
+npm run test:integration
