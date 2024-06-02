@@ -22,6 +22,8 @@ export const RatingService = {
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
+
+    return null;
   },
 
   async updateByIdAndUserId(
