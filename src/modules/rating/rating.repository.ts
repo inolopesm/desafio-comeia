@@ -7,6 +7,7 @@ export const RatingRepository = {
       .db()
       .collection("ratings")
       .find()
+      .sort({ createdAt: 1 })
       .toArray();
 
     return await RatingSchema.array().parseAsync(documents);
@@ -29,7 +30,7 @@ export const RatingRepository = {
     await MongoProvider.getClient()
       .db()
       .collection("ratings")
-      .insertOne(rating);
+      .insertOne(structuredClone(rating));
   },
 
   async updateById(rating: RatingDTO) {

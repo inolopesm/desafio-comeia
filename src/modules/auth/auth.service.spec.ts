@@ -42,7 +42,6 @@ describe("AuthService", () => {
       const result = await AuthService.login(user.username, "password");
 
       if (result instanceof Error) {
-        console.error(result);
         throw new Error("does not expect result to be an instance of error");
       }
 
