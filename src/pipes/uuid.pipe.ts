@@ -1,19 +1,32 @@
-import z from "zod";
-import { ZodPipe } from "./zod.pipe";
+import { HttpException } from "../exceptions/http.exception";
 import type { Pipe } from "../interfaces/pipe.interface";
 
 export class UUIDPipe implements Pipe {
-  private readonly Schema: z.ZodString;
-
-  constructor(key: string) {
-    /* eslint-disable prettier/prettier */
-    this.Schema = z
-      .string({ invalid_type_error: `${key} must be a string type`, required_error: `${key} is a required field` })
-      .uuid(`${key} must be a valid UUID`);
-    /* eslint-disable prettier/prettier */
-  }
+  constructor(
+    private readonly key: string,
+    private readonly statusCode = 400,
+    private readonly message?: string,
+  ) {}
 
   async transform(value: any): Promise<any> {
-    return new ZodPipe(this.Schema).transform(value);
+    if (value === undefined) {
+      const message = `${this.key} is a required field`;
+      throw new HttpException(this.statusCode, this.message ?? message);
+    }
+
+    if (typeof value !== "string") {
+      const message = `${this.key} must be a string type`;
+      throw new HttpException(this.statusCode, this.message ?? message);
+    }
+
+    const UUID_REGEX =
+      /[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}/;
+
+    if (!UUID_REGEX.test(value)) {
+      const message = `${this.key} must be a valid UUID`;
+      throw new HttpException(this.statusCode, this.message ?? message);
+    }
+
+    return value;
   }
 }
