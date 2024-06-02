@@ -14,8 +14,8 @@ export class ZodPipe<T extends z.ZodTypeAny> implements Pipe {
       return await this.schema.parseAsync(value);
     } catch (error) {
       if (error instanceof z.ZodError) {
-        const messages = error.issues.map((issue) => issue.message);
-        throw new HttpException(this.statusCode, this.message ?? messages);
+        const message = error.issues.map((issue) => issue.message).join("; ");
+        throw new HttpException(this.statusCode, this.message ?? message);
       }
 
       throw error;

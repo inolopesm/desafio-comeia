@@ -5,22 +5,36 @@ import type { Route } from "./interfaces/route.interface";
 import type e from "express";
 
 export class RouteAdapter {
+  private readonly swaggerPaths: Record<string, unknown> = {};
+
   constructor(private readonly app: e.Express) {}
 
-  adapt(route: Route) {
+  private swagger(route: Route) {
+    if (route.swagger !== undefined) {
+      this.swaggerPaths[route.path] = {
+        [route.method]: {
+          tags: route.swagger.tags,
+          parameters: route.swagger.parameters,
+          requestBody: route.swagger.requestBody,
+          responses: route.swagger.responses,
+        },
+      };
+    }
+  }
+
+  private router(route: Route) {
     this.app[route.method](route.path, async (req, res, next) => {
       try {
+        const headers: Request["headers"] = {};
+
+        for (const [key, value] of Object.entries(req.headers))
+          if (value !== undefined) headers[key] = value;
+
         const request: Request = {
-          headers: {},
+          headers,
           params: req.params,
           body: req.body,
         };
-
-        for (const [key, value] of Object.entries(req.headers)) {
-          if (value !== undefined) {
-            request.headers[key] = value;
-          }
-        }
 
         const context = new Context(request);
         const data = await route.handler(context);
@@ -33,12 +47,21 @@ export class RouteAdapter {
       } catch (error) {
         if (error instanceof HttpException) {
           res.status(error.statusCode);
-          res.send({ message: error.messageOrMessages });
+          res.send({ message: error.message });
           return;
         }
 
         next(error);
       }
     });
+  }
+
+  adapt(route: Route) {
+    this.router(route);
+    this.swagger(route);
+  }
+
+  getSwaggerPaths() {
+    return this.swaggerPaths;
   }
 }

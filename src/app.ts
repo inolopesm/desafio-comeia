@@ -1,4 +1,6 @@
 import express from "express";
+import swaggerUi from "swagger-ui-express";
+import packageJSON from "../package.json";
 import { AuthController } from "./modules/auth/auth.controller";
 import { RatingController } from "./modules/rating/rating.controller";
 import { RouteAdapter } from "./route.adapter";
@@ -15,6 +17,16 @@ routeAdapter.adapt(RatingController.find);
 routeAdapter.adapt(RatingController.create);
 routeAdapter.adapt(RatingController.update);
 routeAdapter.adapt(RatingController.delete);
+
+app.use(
+  "/api/v1/docs",
+  swaggerUi.serve,
+  swaggerUi.setup({
+    openapi: "3.0.3",
+    info: { title: packageJSON.name, version: packageJSON.version },
+    paths: routeAdapter.getSwaggerPaths(),
+  }),
+);
 
 app.use((request, response) => {
   response.status(404);
