@@ -3,7 +3,7 @@ export const ConfigProvider = {
     const value = process.env[key];
 
     if (value === undefined) {
-      throw new Error(`Configuration key "${key}" does not exist`);
+      throw new Error(`configuration key "${key}" does not exist`);
     }
 
     return value;

@@ -7,7 +7,7 @@ export const MongoProvider = {
 
   getClient() {
     if (this[kClient] === null) {
-      throw new Error("Mongo client not connected");
+      throw new Error("mongo client not connected");
     }
 
     return this[kClient];
@@ -20,7 +20,7 @@ export const MongoProvider = {
 
   async disconnect() {
     if (this[kClient] === null) {
-      throw new Error("Mongo clientnot connected");
+      throw new Error("mongo client not connected");
     }
 
     await this[kClient].close();
