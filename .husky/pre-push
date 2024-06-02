@@ -1,4 +1,4 @@
-npx tsc --noEmit
-npx eslint .
-npm run test:unit
-npm run test:integration
+npm run typecheck
+npm run lint
+npm run test:unit -- --reporters=jest-silent-reporter
+npm run test:integration -- --reporters=jest-silent-reporter
