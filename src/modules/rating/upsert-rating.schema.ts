@@ -5,7 +5,7 @@ export const UpsertRatingSchema = z.object({
   rating: z
     .number({ invalid_type_error: "rating must be a number type", required_error: "rating is a required field" })
     .min(1, "rating must be greater than or equal to 1")
-    .min(5, "rating must be less than or equal to 5"),
+    .max(5, "rating must be less than or equal to 5"),
 
   comment: z
     .string({ invalid_type_error: "comment must be a string type", required_error: "comment is a required field" })
