@@ -4,7 +4,7 @@ import { ZodPipe } from "../../pipes/zod.pipe";
 import { REFRESH_TOKEN_SECRET } from "./auth.constants";
 import { AuthSchema, AuthSwagger } from "./auth.schema";
 import { AuthService } from "./auth.service";
-import { LoginDTO, LoginSchema } from "./login.schema";
+import { LoginDTO, LoginSchema, LoginSwagger } from "./login.schema";
 import { SessionDTO, SessionSchema } from "./session.schema";
 import type { Route } from "../../interfaces/route.interface";
 
@@ -17,14 +17,7 @@ export const AuthController = {
       requestBody: {
         content: {
           "application/json": {
-            schema: {
-              type: "object",
-              required: ["username", "password"],
-              properties: {
-                username: { type: "string" },
-                password: { type: "string" },
-              },
-            },
+            schema: LoginSwagger,
           },
         },
       },

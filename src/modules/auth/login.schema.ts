@@ -13,3 +13,12 @@ export const LoginSchema = z.object({
 });
 
 export type LoginDTO = z.infer<typeof LoginSchema>;
+
+export const LoginSwagger = {
+  type: "object",
+  required: ["username", "password"],
+  properties: {
+    username: { type: "string" },
+    password: { type: "string" },
+  },
+};

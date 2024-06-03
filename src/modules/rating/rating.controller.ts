@@ -3,6 +3,7 @@ import { UUIDPipe } from "../../pipes/uuid.pipe";
 import { ZodPipe } from "../../pipes/zod.pipe";
 import { AuthPipe } from "../auth/auth.pipe";
 import { AuthSwagger } from "../auth/auth.schema";
+import { UserSwagger } from "../auth/user.schema";
 import { RatingSwagger } from "./rating.schema";
 import { RatingService } from "./rating.service";
 
@@ -66,13 +67,13 @@ export const RatingController = {
                 properties: {
                   ...RatingSwagger.properties,
                   user: {
-                    type: "object",
-                    required: ["id", "username", "createdAt", "updatedAt"],
+                    ...UserSwagger,
+                    required: UserSwagger.required.filter(
+                      (value) => value !== "password",
+                    ),
                     properties: {
-                      id: { type: "string" },
-                      username: { type: "string" },
-                      createdAt: { type: "number" },
-                      updatedAt: { type: "number" },
+                      ...UserSwagger.properties,
+                      password: undefined,
                     },
                   },
                 },

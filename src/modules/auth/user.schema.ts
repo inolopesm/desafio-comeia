@@ -9,3 +9,15 @@ export const UserSchema = z.object({
 });
 
 export type UserDTO = z.infer<typeof UserSchema>;
+
+export const UserSwagger = {
+  type: "object",
+  required: ["id", "username", "password", "createdAt", "updatedAt"],
+  properties: {
+    id: { type: "string" },
+    username: { type: "string" },
+    password: { type: "string" },
+    createdAt: { type: "number" },
+    updatedAt: { type: "number" },
+  },
+};
