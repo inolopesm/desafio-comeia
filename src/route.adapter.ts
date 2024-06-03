@@ -5,25 +5,29 @@ import type { Route } from "./interfaces/route.interface";
 import type e from "express";
 
 export class RouteAdapter {
-  private readonly swaggerPaths: Record<string, unknown> = {};
+  private readonly swaggerPaths: any = {};
 
   constructor(private readonly app: e.Express) {}
 
   private swagger(route: Route) {
     if (route.swagger !== undefined) {
-      this.swaggerPaths[route.path] = {
-        [route.method]: {
-          tags: route.swagger.tags,
-          parameters: route.swagger.parameters,
-          requestBody: route.swagger.requestBody,
-          responses: route.swagger.responses,
-        },
+      if (this.swaggerPaths[route.path] === undefined) {
+        this.swaggerPaths[route.path] = {};
+      }
+
+      this.swaggerPaths[route.path][route.method] = {
+        tags: route.swagger.tags,
+        parameters: route.swagger.parameters,
+        requestBody: route.swagger.requestBody,
+        responses: route.swagger.responses,
       };
     }
   }
 
   private router(route: Route) {
-    this.app[route.method](route.path, async (req, res, next) => {
+    const path = route.path.replace(/{([a-zA-Z]+)}/, ":$1");
+
+    this.app[route.method](path, async (req, res, next) => {
       try {
         const headers: Request["headers"] = {};
 

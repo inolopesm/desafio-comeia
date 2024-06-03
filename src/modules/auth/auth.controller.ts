@@ -2,7 +2,7 @@ import { HttpException } from "../../exceptions/http.exception";
 import { JWTPipe } from "../../pipes/jwt.pipe";
 import { ZodPipe } from "../../pipes/zod.pipe";
 import { REFRESH_TOKEN_SECRET } from "./auth.constants";
-import { AuthSchema } from "./auth.schema";
+import { AuthSchema, AuthSwagger } from "./auth.schema";
 import { AuthService } from "./auth.service";
 import { LoginDTO, LoginSchema } from "./login.schema";
 import { SessionDTO, SessionSchema } from "./session.schema";
@@ -69,14 +69,7 @@ export const AuthController = {
     path: "/api/v1/auth/refresh",
     swagger: {
       tags: ["auth"],
-      parameters: [
-        {
-          in: "header",
-          name: "Authorization",
-          schema: { type: "string" },
-          required: true,
-        },
-      ],
+      parameters: [AuthSwagger],
       responses: {
         "200": {
           description: "OK",

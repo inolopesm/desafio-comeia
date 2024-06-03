@@ -10,3 +10,16 @@ export const RatingSchema = z.object({
 });
 
 export type RatingDTO = z.infer<typeof RatingSchema>;
+
+export const RatingSwagger = {
+  type: "object",
+  required: ["id", "userId", "rating", "comment", "createdAt", "updatedAt"],
+  properties: {
+    id: { type: "string" },
+    userId: { type: "string" },
+    rating: { type: "number", example: 5 },
+    comment: { type: "string" },
+    createdAt: { type: "number" },
+    updatedAt: { type: "number" },
+  },
+};

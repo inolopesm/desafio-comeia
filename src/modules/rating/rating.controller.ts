@@ -2,15 +2,47 @@ import { HttpException } from "../../exceptions/http.exception";
 import { UUIDPipe } from "../../pipes/uuid.pipe";
 import { ZodPipe } from "../../pipes/zod.pipe";
 import { AuthPipe } from "../auth/auth.pipe";
+import { AuthSwagger } from "../auth/auth.schema";
+import { RatingSwagger } from "./rating.schema";
 import { RatingService } from "./rating.service";
-import { UpsertRatingDTO, UpsertRatingSchema } from "./upsert-rating.schema";
+
+import {
+  UpsertRatingDTO,
+  UpsertRatingSchema,
+  UpsertRatingSwagger,
+} from "./upsert-rating.schema";
+
 import type { Route } from "../../interfaces/route.interface";
 import type { SessionDTO } from "../auth/session.schema";
+
+const RatingIdSwagger = {
+  in: "path",
+  name: "id",
+  schema: { type: "string" },
+  required: true,
+};
 
 export const RatingController = {
   find: {
     method: "get",
     path: "/api/v1/ratings",
+    swagger: {
+      tags: ["rating"],
+      parameters: [AuthSwagger],
+      responses: {
+        "200": {
+          description: "OK",
+          content: {
+            "application/json": {
+              schema: {
+                type: "array",
+                items: RatingSwagger,
+              },
+            },
+          },
+        },
+      },
+    },
     handler: async (context) => {
       await context.getHeader("authorization", new AuthPipe());
       return await RatingService.find();
@@ -20,6 +52,22 @@ export const RatingController = {
   create: {
     method: "post",
     path: "/api/v1/ratings",
+    swagger: {
+      tags: ["rating"],
+      parameters: [AuthSwagger],
+      requestBody: {
+        content: {
+          "application/json": {
+            schema: UpsertRatingSwagger,
+          },
+        },
+      },
+      responses: {
+        "200": {
+          description: "OK",
+        },
+      },
+    },
     handler: async (context) => {
       const { userId }: SessionDTO = await context.getHeader(
         "authorization",
@@ -40,7 +88,23 @@ export const RatingController = {
 
   update: {
     method: "put",
-    path: "/api/v1/ratings/:id",
+    path: "/api/v1/ratings/{id}",
+    swagger: {
+      tags: ["rating"],
+      parameters: [AuthSwagger, RatingIdSwagger],
+      requestBody: {
+        content: {
+          "application/json": {
+            schema: UpsertRatingSwagger,
+          },
+        },
+      },
+      responses: {
+        "200": {
+          description: "OK",
+        },
+      },
+    },
     handler: async (context) => {
       const id: string = await context.getParam("id", new UUIDPipe("id"));
 
@@ -68,7 +132,12 @@ export const RatingController = {
 
   delete: {
     method: "delete",
-    path: "/api/v1/ratings/:id",
+    path: "/api/v1/ratings/{id}",
+    swagger: {
+      tags: ["rating"],
+      parameters: [AuthSwagger, RatingIdSwagger],
+      responses: { "200": { description: "OK" } },
+    },
     handler: async (context) => {
       const id: string = await context.getParam("id", new UUIDPipe("id"));
 

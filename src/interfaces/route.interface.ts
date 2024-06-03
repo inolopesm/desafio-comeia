@@ -26,7 +26,7 @@ export interface Route {
     responses: {
       [statusCode: string]: {
         description: string;
-        content: {
+        content?: {
           "application/json": {
             schema: Record<string, unknown>;
           };

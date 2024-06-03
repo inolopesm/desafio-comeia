@@ -15,3 +15,12 @@ export const UpsertRatingSchema = z.object({
 /* eslint-enable prettier/prettier */
 
 export type UpsertRatingDTO = z.infer<typeof UpsertRatingSchema>;
+
+export const UpsertRatingSwagger = {
+  type: "object",
+  required: ["rating", "comment"],
+  properties: {
+    rating: { type: "number", example: 5 },
+    comment: { type: "string" },
+  },
+};
