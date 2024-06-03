@@ -13,6 +13,13 @@ const userDTO: UserDTO = {
   updatedAt: 2,
 };
 
+const userDTOWithoutPassword: Omit<UserDTO, "password"> = {
+  id: "id",
+  username: "username",
+  createdAt: 1,
+  updatedAt: 2,
+};
+
 const ratingDTO: RatingDTO = {
   id: "id",
   userId: "userId",
@@ -40,6 +47,13 @@ jest.mock("./rating.repository", () => ({
       return ratingDTO;
     },
 
+    async findByIdWithUserWithoutPassword() {
+      return {
+        ...ratingDTO,
+        user: userDTOWithoutPassword,
+      };
+    },
+
     async create() {
       //
     },
@@ -59,6 +73,22 @@ describe("RatingService", () => {
     it("should return an array of ratings", async () => {
       const result = await RatingService.find();
       expect(result).toEqual([ratingDTO, ratingDTO]);
+    });
+  });
+
+  describe("findById", () => {
+    it("should return an error if the rating is not found", async () => {
+      jest
+        .spyOn(RatingRepository, "findByIdWithUserWithoutPassword")
+        .mockResolvedValueOnce(null);
+
+      const result = await RatingService.findById("id");
+      expect(result).toEqual(new Error("rating not found"));
+    });
+
+    it("should return an error if the rating is not found", async () => {
+      const result = await RatingService.findById("id");
+      expect(result).toEqual({ ...ratingDTO, user: userDTOWithoutPassword });
     });
   });
 

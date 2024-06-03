@@ -49,6 +49,54 @@ export const RatingController = {
     },
   } satisfies Route,
 
+  findOne: {
+    method: "get",
+    path: "/api/v1/ratings/:id",
+    swagger: {
+      tags: ["rating"],
+      parameters: [AuthSwagger, RatingIdSwagger],
+      responses: {
+        "200": {
+          description: "OK",
+          content: {
+            "application/json": {
+              schema: {
+                ...RatingSwagger,
+                required: [...RatingSwagger.required, "user"],
+                properties: {
+                  ...RatingSwagger.properties,
+                  user: {
+                    type: "object",
+                    required: ["id", "username", "createdAt", "updatedAt"],
+                    properties: {
+                      id: { type: "string" },
+                      username: { type: "string" },
+                      createdAt: { type: "number" },
+                      updatedAt: { type: "number" },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    handler: async (context) => {
+      await context.getHeader("authorization", new AuthPipe());
+      const id: string = await context.getParam("id", new UUIDPipe("id"));
+      const ratingWithUserOrError = await RatingService.findById(id);
+
+      if (ratingWithUserOrError instanceof Error) {
+        const error = ratingWithUserOrError;
+        throw new HttpException(400, error.message);
+      }
+
+      const ratingWithUser = ratingWithUserOrError;
+      return ratingWithUser;
+    },
+  } satisfies Route,
+
   create: {
     method: "post",
     path: "/api/v1/ratings",

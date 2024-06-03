@@ -1,4 +1,5 @@
 import { MongoProvider } from "../../providers/mongo.provider";
+import { UserSchema } from "../auth/user.schema";
 import { RatingDTO, RatingSchema } from "./rating.schema";
 
 export const RatingRepository = {
@@ -24,6 +25,41 @@ export const RatingRepository = {
     }
 
     return await RatingSchema.parseAsync(document);
+  },
+
+  async findByIdWithUserWithoutPassword(id: string) {
+    const pipeline = [
+      {
+        $match: {
+          id: id,
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "userId",
+          foreignField: "id",
+          as: "user",
+        },
+      },
+      {
+        $unwind: "$user",
+      },
+    ];
+
+    const documents = await MongoProvider.getClient()
+      .db()
+      .collection("ratings")
+      .aggregate(pipeline)
+      .toArray();
+
+    const [document] = documents;
+
+    /* eslint-disable prettier/prettier */
+    return document
+      ? await RatingSchema.extend({ user: UserSchema.omit({ password: true }) }).parseAsync(document)
+      : null;
+    /* eslint-enable prettier/prettier */
   },
 
   async create(rating: RatingDTO) {

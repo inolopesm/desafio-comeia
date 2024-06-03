@@ -7,6 +7,16 @@ export const RatingService = {
     return await RatingRepository.find();
   },
 
+  async findById(id: string) {
+    const rating = await RatingRepository.findByIdWithUserWithoutPassword(id);
+
+    if (rating === null) {
+      return new Error("rating not found");
+    }
+
+    return rating;
+  },
+
   async create(userId: string, rating: number, comment: string) {
     const user = await UserRepository.findById(userId);
 

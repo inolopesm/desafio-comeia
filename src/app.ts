@@ -14,6 +14,7 @@ const routeAdapter = new RouteAdapter(app);
 routeAdapter.adapt(AuthController.login);
 routeAdapter.adapt(AuthController.refresh);
 routeAdapter.adapt(RatingController.find);
+routeAdapter.adapt(RatingController.findOne);
 routeAdapter.adapt(RatingController.create);
 routeAdapter.adapt(RatingController.update);
 routeAdapter.adapt(RatingController.delete);

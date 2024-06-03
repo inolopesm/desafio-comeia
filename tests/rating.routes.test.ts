@@ -74,6 +74,78 @@ describe("Rating Module", () => {
     });
   });
 
+  describe("GET /api/v1/ratings/:id", () => {
+    it("should return 400 if rating has not found", async () => {
+      const ratingId = crypto.randomUUID();
+
+      const sessionDTO: SessionDTO = { userId: crypto.randomUUID() };
+
+      const accessToken = await new jose.SignJWT({ ...sessionDTO })
+        .setProtectedHeader({ alg: "HS256" })
+        .setIssuedAt()
+        .setExpirationTime("5 minutes")
+        .sign(new TextEncoder().encode("ACCESS_TOKEN_SECRET"));
+
+      const response = await request(app)
+        .get(`/api/v1/ratings/${ratingId}`)
+        .set("Authorization", `Bearer ${accessToken}`);
+
+      expect(response.status).toEqual(400);
+      expect(response.body).toEqual({ message: "rating not found" });
+    });
+
+    it("should return 200 when success", async () => {
+      const user: UserDTO = {
+        id: crypto.randomUUID(),
+        username: "matheus",
+        password: `$argon2id$v=19$m=65536,t=3,p=4$SzGuC08WqCVW3sWK7F6APQ$Dg184GXflcE+V+7Dmfx75scJt7njwuqFmW0xrviVSCo`,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
+
+      const userWithoutPassword: Omit<UserDTO, "password"> = {
+        id: user.id,
+        username: user.username,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      };
+
+      await MongoProvider.getClient()
+        .db()
+        .collection("users")
+        .insertOne(structuredClone(user));
+
+      const rating: RatingDTO = {
+        id: crypto.randomUUID(),
+        userId: user.id,
+        rating: 1,
+        comment: "comment",
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
+
+      await MongoProvider.getClient()
+        .db()
+        .collection("ratings")
+        .insertOne(structuredClone(rating));
+
+      const sessionDTO: SessionDTO = { userId: user.id };
+
+      const accessToken = await new jose.SignJWT({ ...sessionDTO })
+        .setProtectedHeader({ alg: "HS256" })
+        .setIssuedAt()
+        .setExpirationTime("5 minutes")
+        .sign(new TextEncoder().encode("ACCESS_TOKEN_SECRET"));
+
+      const response = await request(app)
+        .get(`/api/v1/ratings/${rating.id}`)
+        .set("Authorization", `Bearer ${accessToken}`);
+
+      expect(response.status).toEqual(200);
+      expect(response.body).toEqual({ ...rating, user: userWithoutPassword });
+    });
+  });
+
   describe("POST /api/v1/ratings", () => {
     it("should return 400 if user has not found", async () => {
       const upsertRatingDTO: UpsertRatingDTO = {
